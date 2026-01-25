@@ -2,7 +2,7 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: ["main"] # Ensure this matches your default branch name
+    branches: ["main"]
 
 permissions:
   contents: read
@@ -23,13 +23,15 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci # 'npm ci' is faster and more reliable for automated builds
+        run: npm ci
 
       - name: Build
         run: npm run build
         env:
-          # Inject your API keys here so Vite can bundle them
-          # Replace 'VITE_GEMINI_API_KEY' with whatever variable name your code uses
+          # ADD THESE TWO LINES BELOW
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          # KEEP YOUR OTHER KEYS
           VITE_GEMINI_API_KEY: ${{ secrets.VITE_GEMINI_API_KEY }}
           VITE_APP_TITLE: "Research Assistant AI"
 
