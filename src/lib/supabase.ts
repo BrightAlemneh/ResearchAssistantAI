@@ -8,7 +8,10 @@ if (!supabaseUrl || !supabaseAnonKey) {
 }
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
+// Add this at the very top of supabase.ts
+if (typeof process === 'undefined') {
+  window.process = { env: {} } as any;
+}
 export type Database = {
   public: {
     Tables: {
