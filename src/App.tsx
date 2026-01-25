@@ -1,10 +1,8 @@
-import { useAuth } from './contexts/AuthContext';
-import Auth from './components/Auth';
-import Dashboard from './components/Dashboard';
-import { Loader2 } from 'lucide-react';
-
 function App() {
   const { user, loading } = useAuth();
+  
+  // ADD THIS LOG
+  console.log("Current Auth State:", { user, loading });
 
   if (loading) {
     return (
@@ -16,5 +14,3 @@ function App() {
 
   return user ? <Dashboard /> : <Auth />;
 }
-
-export default App;
