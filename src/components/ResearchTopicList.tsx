@@ -11,21 +11,22 @@ interface ResearchTopicListProps {
   topics: ResearchTopic[];
   selectedTopic: ResearchTopic | null;
   onSelectTopic: (topic: ResearchTopic) => void;
-  onDeleteTopic: (id: string, e: React.MouseEvent) => void; // Added this prop
+  onDeleteTopic: (id: string, e: React.MouseEvent) => void;
 }
 
 export default function ResearchTopicList({
   topics,
   selectedTopic,
   onSelectTopic,
-  onDeleteTopic, // Destructure the new prop
+  onDeleteTopic,
 }: ResearchTopicListProps) {
+  
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'completed':
         return <CheckCircle className="w-4 h-4 text-green-600" />;
+      case 'error':
       case 'failed':
-      case 'error': // Added 'error' to match our new Edge Function logic
         return <AlertCircle className="w-4 h-4 text-red-600" />;
       case 'pending':
       case 'searching':
@@ -42,8 +43,8 @@ export default function ResearchTopicList({
       case 'searching': return 'Finding papers';
       case 'analyzing': return 'Analyzing';
       case 'completed': return 'Completed';
-      case 'failed':
-      case 'error': return 'Failed'; // Added 'error'
+      case 'error':
+      case 'failed': return 'Failed';
       default: return status;
     }
   };
@@ -60,10 +61,7 @@ export default function ResearchTopicList({
   return (
     <div className="space-y-2 max-h-[calc(100vh-400px)] overflow-y-auto pr-1">
       {topics.map((topic) => (
-        <div
-          key={topic.id}
-          className="group relative" // "group" allows us to hide/show the delete icon on hover
-        >
+        <div key={topic.id} className="group relative">
           <button
             onClick={() => onSelectTopic(topic)}
             className={`w-full text-left p-3 rounded-lg border transition pr-10 ${
@@ -84,6 +82,16 @@ export default function ResearchTopicList({
             </div>
           </button>
 
-          {/* New Delete Button overlay */}
+          {/* Delete Button overlay */}
           <button
             onClick={(e) => onDeleteTopic(topic.id, e)}
+            className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-all opacity-0 group-hover:opacity-100"
+            title="Delete Topic"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+}
