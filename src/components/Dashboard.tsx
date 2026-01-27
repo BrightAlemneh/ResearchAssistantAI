@@ -39,9 +39,40 @@ export default function Dashboard() {
   }
 
   // 2. TRIGGER FETCH ON MOUNT
+  //useEffect(() => {
+  //  fetchResearchTopics();
+ // }, []);
   useEffect(() => {
-    fetchResearchTopics();
-  }, []);
+  fetchResearchTopics();
+
+  // This "listens" to the database and updates your screen the second the AI finishes
+  const channel = supabase
+    .channel('schema-db-changes')
+    .on(
+      'postgres_changes',
+      { 
+        event: 'UPDATE', 
+        schema: 'public', 
+        table: 'research_topics' 
+      },
+      (payload) => {
+        // Update the list of topics
+        setResearchTopics((currentTopics) =>
+          currentTopics.map((t) => (t.id === payload.new.id ? { ...t, ...payload.new } : t))
+        );
+        
+        // If the topic you are currently viewing just finished, update the view
+        if (selectedTopic?.id === payload.new.id) {
+          setSelectedTopic(payload.new as ResearchTopic);
+        }
+      }
+    )
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}, [selectedTopic]);
 
   // 3. DELETE LOGIC
   const handleDeleteTopic = async (id: string, e: React.MouseEvent) => {
