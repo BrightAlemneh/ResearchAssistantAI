@@ -3,7 +3,8 @@ import { useAuth } from './contexts/AuthContext';
 import Auth from './components/Auth';
 import Dashboard from './components/Dashboard';
 import { Loader2, Bug } from 'lucide-react';
-
+// This must be added to your frontend project
+import 'katex/dist/katex.min.css';
 function App() {
   const { user, loading } = useAuth();
   const [bypassUser, setBypassUser] = useState<any>(null);
