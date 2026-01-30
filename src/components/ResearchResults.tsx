@@ -2,9 +2,9 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { BookOpen, FileText, Lightbulb, FileCheck, ExternalLink, Loader2, RefreshCw, Download } from 'lucide-react';
 // IMPORT MARKDOWN DIRECTLY FROM CDN
-import ReactMarkdown from 'https://esm.sh/react-markdown@9';
+//import ReactMarkdown from 'https://esm.sh/react-markdown@9';
 // IMPORT PDF GENERATOR FROM CDN
-import html2pdf from 'https://esm.sh/html2pdf.js';
+//import html2pdf from 'https://esm.sh/html2pdf.js';
 import ReactMarkdown from 'react-markdown';
 import html2pdf from 'html2pdf.js';
 interface ResearchTopic {
