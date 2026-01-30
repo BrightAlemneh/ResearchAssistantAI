@@ -5,7 +5,8 @@ import { BookOpen, FileText, Lightbulb, FileCheck, ExternalLink, Loader2, Refres
 import ReactMarkdown from 'https://esm.sh/react-markdown@9';
 // IMPORT PDF GENERATOR FROM CDN
 import html2pdf from 'https://esm.sh/html2pdf.js';
-
+import ReactMarkdown from 'react-markdown';
+import html2pdf from 'html2pdf.js';
 interface ResearchTopic {
   id: string;
   topic: string;
