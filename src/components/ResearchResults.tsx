@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { BookOpen, FileText, Lightbulb, FileCheck, ExternalLink, Loader2, RefreshCw } from 'lucide-react';
+import { BookOpen, FileText, Lightbulb, FileCheck, ExternalLink, Loader2, RefreshCw, Download } from 'lucide-react';
 // IMPORT MARKDOWN DIRECTLY FROM CDN
 import ReactMarkdown from 'https://esm.sh/react-markdown@9';
+// IMPORT PDF GENERATOR FROM CDN
+import html2pdf from 'https://esm.sh/html2pdf.js';
 
 interface ResearchTopic {
   id: string;
@@ -60,22 +62,12 @@ export default function ResearchResults({ topic, onTopicUpdated }: ResearchResul
       .channel(`research_${topic.id}`)
       .on(
         'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'research_topics',
-          filter: `id=eq.${topic.id}`,
-        },
-        (payload) => {
-          onTopicUpdated(payload.new as ResearchTopic);
-        }
+        { event: '*', schema: 'public', table: 'research_topics', filter: `id=eq.${topic.id}` },
+        (payload) => { onTopicUpdated(payload.new as ResearchTopic); }
       )
       .subscribe();
 
-    const interval = setInterval(() => {
-      fetchAllData();
-    }, 5000);
-
+    const interval = setInterval(() => { fetchAllData(); }, 5000);
     return () => {
       subscription.unsubscribe();
       clearInterval(interval);
@@ -90,7 +82,6 @@ export default function ResearchResults({ topic, onTopicUpdated }: ResearchResul
         supabase.from('research_gaps').select('*').eq('research_topic_id', topic.id),
         supabase.from('proposals').select('*').eq('research_topic_id', topic.id).maybeSingle(),
       ]);
-
       setPapers(papersResult.data || []);
       setSummary(summaryResult.data);
       setGaps(gapsResult.data || []);
@@ -100,6 +91,22 @@ export default function ResearchResults({ topic, onTopicUpdated }: ResearchResul
     } finally {
       setLoading(false);
     }
+  };
+
+  // --- PDF GENERATION LOGIC ---
+  const handleDownloadPDF = () => {
+    const element = document.getElementById('academic-proposal-document');
+    if (!element) return;
+
+    const opt = {
+      margin: [0.75, 0.75, 0.75, 0.75], // Standard 0.75 inch margins
+      filename: `${topic.topic.replace(/\s+/g, '_')}_Proposal.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true, letterRendering: true },
+      jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+    };
+
+    html2pdf().set(opt).from(element).save();
   };
 
   const getPriorityColor = (priority: string) => {
@@ -129,15 +136,14 @@ export default function ResearchResults({ topic, onTopicUpdated }: ResearchResul
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-      {/* Tab Styles for Markdown */}
       <style>{`
-        .prose h1 { font-size: 1.875rem; font-weight: 800; color: #1e3a8a; margin-top: 1.5rem; margin-bottom: 1rem; border-bottom: 1px solid #e5e7eb; padding-bottom: 0.5rem; }
-        .prose h2 { font-size: 1.5rem; font-weight: 700; color: #1e40af; margin-top: 1.5rem; margin-bottom: 0.75rem; }
-        .prose h3 { font-size: 1.25rem; font-weight: 600; color: #1e3a8a; margin-top: 1.25rem; }
-        .prose p { margin-bottom: 1rem; line-height: 1.625; color: #374151; }
-        .prose ul { list-style-type: disc; padding-left: 1.5rem; margin-bottom: 1rem; }
+        .prose h1 { font-size: 2rem; font-weight: 800; color: #1e3a8a; margin-top: 1.5rem; margin-bottom: 1rem; text-align: center; border-bottom: 2px solid #e5e7eb; padding-bottom: 1rem; }
+        .prose h2 { font-size: 1.5rem; font-weight: 700; color: #1e40af; margin-top: 2rem; margin-bottom: 0.75rem; border-left: 4px solid #1e40af; padding-left: 10px; }
+        .prose h3 { font-size: 1.25rem; font-weight: 600; color: #1e3a8a; margin-top: 1.5rem; }
+        .prose p { margin-bottom: 1.25rem; line-height: 1.8; color: #1f2937; text-align: justify; }
+        .prose ul { list-style-type: disc; padding-left: 1.5rem; margin-bottom: 1.25rem; }
         .prose li { margin-bottom: 0.5rem; }
-        .prose strong { color: #111827; font-weight: 600; }
+        .academic-paper { font-family: 'Times New Roman', Times, serif; background-color: white; }
       `}</style>
 
       <div className="border-b border-gray-200 p-6">
@@ -183,54 +189,61 @@ export default function ResearchResults({ topic, onTopicUpdated }: ResearchResul
       <div className="p-6">
         {activeTab === 'papers' && (
           <div className="space-y-4">
-            {papers.length === 0 ? (
-              <div className="text-center py-12 text-gray-400"><BookOpen className="w-12 h-12 mx-auto mb-3" /><p>No papers found</p></div>
-            ) : (
-              papers.map((paper) => (
-                <div key={paper.id} className="border border-gray-200 rounded-lg p-4">
-                  <div className="flex justify-between items-start gap-4">
-                    <h3 className="text-lg font-semibold text-gray-900">{paper.title}</h3>
-                    {paper.url && <a href={paper.url} target="_blank" rel="noopener" className="text-blue-600"><ExternalLink className="w-5 h-5" /></a>}
-                  </div>
-                  <p className="text-sm text-gray-700 mt-2">{paper.abstract}</p>
+            {papers.map((paper) => (
+              <div key={paper.id} className="border border-gray-200 rounded-lg p-4 hover:bg-slate-50 transition">
+                <div className="flex justify-between items-start gap-4">
+                  <h3 className="text-lg font-semibold text-gray-900">{paper.title}</h3>
+                  {paper.url && <a href={paper.url} target="_blank" rel="noopener" className="text-blue-600"><ExternalLink className="w-5 h-5" /></a>}
                 </div>
-              ))
-            )}
+                <p className="text-sm text-gray-600 mt-1 italic">{paper.authors.join(', ')} • {paper.published_date}</p>
+                <p className="text-sm text-gray-700 mt-2 line-clamp-3">{paper.abstract}</p>
+              </div>
+            ))}
           </div>
         )}
 
         {activeTab === 'summary' && (
-          <div className="bg-gray-50 rounded-lg p-8 border border-gray-200 prose max-w-none">
-            {summary ? <ReactMarkdown>{summary.content}</ReactMarkdown> : <p className="text-gray-500">Generating summary...</p>}
+          <div className="bg-gray-50 rounded-lg p-8 border prose max-w-none">
+            {summary ? <ReactMarkdown>{summary.content}</ReactMarkdown> : <p>Analyzing literature...</p>}
           </div>
         )}
 
         {activeTab === 'gaps' && (
-          <div className="space-y-3">
-            {gaps.length === 0 ? (
-              <p className="text-center text-gray-500 py-10">No gaps found yet.</p>
-            ) : (
-              gaps.map((gap) => (
-                <div key={gap.id} className="border border-gray-200 rounded-lg p-4 bg-white shadow-sm">
-                  <span className={`text-xs px-2 py-1 rounded border ${getPriorityColor(gap.priority)} mb-2 inline-block uppercase font-bold`}>
-                    {gap.priority} Priority
-                  </span>
-                  <div className="prose prose-sm max-w-none">
-                    <ReactMarkdown>{gap.gap_description}</ReactMarkdown>
-                  </div>
+          <div className="space-y-4">
+            {gaps.map((gap) => (
+              <div key={gap.id} className="border border-gray-200 rounded-lg p-6 bg-white shadow-sm border-l-4 border-l-blue-600">
+                <span className={`text-xs px-2 py-1 rounded border ${getPriorityColor(gap.priority)} mb-3 inline-block font-bold`}>
+                  {gap.priority.toUpperCase()} PRIORITY
+                </span>
+                <div className="prose prose-sm max-w-none">
+                  <ReactMarkdown>{gap.gap_description}</ReactMarkdown>
                 </div>
-              ))
-            )}
+              </div>
+            ))}
           </div>
         )}
 
         {activeTab === 'proposal' && (
-          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-            <div className="bg-blue-900 text-white p-6">
-              <h3 className="text-2xl font-serif font-bold italic">{proposal?.title || 'Research Proposal'}</h3>
+          <div className="space-y-6">
+            <div className="flex justify-end">
+              <button 
+                onClick={handleDownloadPDF}
+                className="flex items-center gap-2 bg-blue-700 text-white px-5 py-2.5 rounded-lg hover:bg-blue-800 transition shadow-md font-semibold"
+              >
+                <Download className="w-4 h-4" />
+                Download Formal Proposal (.PDF)
+              </button>
             </div>
-            <div className="p-8 prose max-w-none font-serif text-lg leading-relaxed bg-slate-50">
-              {proposal ? <ReactMarkdown>{proposal.content}</ReactMarkdown> : <p className="text-gray-500">Generating proposal...</p>}
+
+            <div id="academic-proposal-document" className="bg-white border p-12 md:p-20 shadow-lg academic-paper prose max-w-none">
+              {proposal ? (
+                <ReactMarkdown>{proposal.content}</ReactMarkdown>
+              ) : (
+                <div className="text-center py-20">
+                  <Loader2 className="w-10 h-10 animate-spin mx-auto text-blue-600 mb-4" />
+                  <p className="text-gray-500">Drafting formal research proposal...</p>
+                </div>
+              )}
             </div>
           </div>
         )}
