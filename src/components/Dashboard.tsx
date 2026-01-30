@@ -5,7 +5,8 @@ import { LogOut, Search, Loader2, Plus, FileText, BookOpen, Lightbulb, FileCheck
 import ResearchTopicForm from './ResearchTopicForm';
 import ResearchTopicList from './ResearchTopicList';
 import ResearchResults from './ResearchResults';
-
+// Add this near your other imports at the top
+import ReactMarkdown from 'https://esm.sh/react-markdown@9';
 interface ResearchTopic {
   id: string;
   topic: string;
