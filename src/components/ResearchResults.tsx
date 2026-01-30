@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { BookOpen, FileText, Lightbulb, FileCheck, ExternalLink, Loader2, RefreshCw } from 'lucide-react';
+// IMPORT MARKDOWN DIRECTLY FROM CDN
+import ReactMarkdown from 'https://esm.sh/react-markdown@9';
 
 interface ResearchTopic {
   id: string;
@@ -102,14 +104,10 @@ export default function ResearchResults({ topic, onTopicUpdated }: ResearchResul
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'high':
-        return 'bg-red-100 text-red-800 border-red-200';
-      case 'medium':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'low':
-        return 'bg-green-100 text-green-800 border-green-200';
-      default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
+      case 'high': return 'bg-red-100 text-red-800 border-red-200';
+      case 'medium': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'low': return 'bg-green-100 text-green-800 border-green-200';
+      default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
 
@@ -122,17 +120,26 @@ export default function ResearchResults({ topic, onTopicUpdated }: ResearchResul
 
   if (loading) {
     return (
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12">
-        <div className="flex flex-col items-center justify-center">
-          <Loader2 className="w-12 h-12 text-blue-600 animate-spin mb-4" />
-          <p className="text-gray-600">Loading research data...</p>
-        </div>
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 flex flex-col items-center justify-center">
+        <Loader2 className="w-12 h-12 text-blue-600 animate-spin mb-4" />
+        <p className="text-gray-600">Loading research data...</p>
       </div>
     );
   }
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+      {/* Tab Styles for Markdown */}
+      <style>{`
+        .prose h1 { font-size: 1.875rem; font-weight: 800; color: #1e3a8a; margin-top: 1.5rem; margin-bottom: 1rem; border-bottom: 1px solid #e5e7eb; padding-bottom: 0.5rem; }
+        .prose h2 { font-size: 1.5rem; font-weight: 700; color: #1e40af; margin-top: 1.5rem; margin-bottom: 0.75rem; }
+        .prose h3 { font-size: 1.25rem; font-weight: 600; color: #1e3a8a; margin-top: 1.25rem; }
+        .prose p { margin-bottom: 1rem; line-height: 1.625; color: #374151; }
+        .prose ul { list-style-type: disc; padding-left: 1.5rem; margin-bottom: 1rem; }
+        .prose li { margin-bottom: 0.5rem; }
+        .prose strong { color: #111827; font-weight: 600; }
+      `}</style>
+
       <div className="border-b border-gray-200 p-6">
         <div className="flex items-start justify-between mb-4">
           <div className="flex-1">
@@ -140,25 +147,18 @@ export default function ResearchResults({ topic, onTopicUpdated }: ResearchResul
             <div className="flex items-center gap-2">
               <span className={`text-xs px-2 py-1 rounded-full ${
                 topic.status === 'completed' ? 'bg-green-100 text-green-800' :
-                topic.status === 'failed' ? 'bg-red-100 text-red-800' :
-                'bg-blue-100 text-blue-800'
+                topic.status === 'failed' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'
               }`}>
                 {topic.status}
               </span>
-              {topic.status !== 'completed' && topic.status !== 'failed' && (
-                <Loader2 className="w-4 h-4 text-blue-600 animate-spin" />
-              )}
             </div>
           </div>
-          <button
-            onClick={fetchAllData}
-            className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition"
-          >
+          <button onClick={fetchAllData} className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg">
             <RefreshCw className="w-5 h-5" />
           </button>
         </div>
 
-        <div className="flex gap-2 overflow-x-auto">
+        <div className="flex gap-2 overflow-x-auto pb-2">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             return (
@@ -166,16 +166,12 @@ export default function ResearchResults({ topic, onTopicUpdated }: ResearchResul
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition whitespace-nowrap ${
-                  activeTab === tab.id
-                    ? 'bg-blue-100 text-blue-700'
-                    : 'text-gray-600 hover:bg-gray-100'
+                  activeTab === tab.id ? 'bg-blue-100 text-blue-700' : 'text-gray-600 hover:bg-gray-100'
                 }`}
               >
                 <Icon className="w-4 h-4" />
                 {tab.label}
-                <span className={`text-xs px-1.5 py-0.5 rounded-full ${
-                  activeTab === tab.id ? 'bg-blue-200' : 'bg-gray-200'
-                }`}>
+                <span className={`text-xs px-1.5 py-0.5 rounded-full ${activeTab === tab.id ? 'bg-blue-200' : 'bg-gray-200'}`}>
                   {tab.count}
                 </span>
               </button>
@@ -188,49 +184,15 @@ export default function ResearchResults({ topic, onTopicUpdated }: ResearchResul
         {activeTab === 'papers' && (
           <div className="space-y-4">
             {papers.length === 0 ? (
-              <div className="text-center py-12 text-gray-500">
-                <BookOpen className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-                <p>No papers found yet</p>
-                {topic.status !== 'completed' && topic.status !== 'failed' && (
-                  <p className="text-sm mt-1">Search in progress...</p>
-                )}
-              </div>
+              <div className="text-center py-12 text-gray-400"><BookOpen className="w-12 h-12 mx-auto mb-3" /><p>No papers found</p></div>
             ) : (
               papers.map((paper) => (
-                <div key={paper.id} className="border border-gray-200 rounded-lg p-4 hover:border-gray-300 transition">
-                  <div className="flex items-start justify-between gap-4 mb-2">
-                    <h3 className="text-lg font-semibold text-gray-900 flex-1">{paper.title}</h3>
-                    {paper.url && (
-                      <a
-                        href={paper.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:text-blue-700 flex-shrink-0"
-                      >
-                        <ExternalLink className="w-5 h-5" />
-                      </a>
-                    )}
+                <div key={paper.id} className="border border-gray-200 rounded-lg p-4">
+                  <div className="flex justify-between items-start gap-4">
+                    <h3 className="text-lg font-semibold text-gray-900">{paper.title}</h3>
+                    {paper.url && <a href={paper.url} target="_blank" rel="noopener" className="text-blue-600"><ExternalLink className="w-5 h-5" /></a>}
                   </div>
-                  <div className="text-sm text-gray-600 mb-2">
-                    {paper.authors.length > 0 && (
-                      <p className="mb-1">
-                        <span className="font-medium">Authors:</span> {paper.authors.join(', ')}
-                      </p>
-                    )}
-                    {paper.published_date && (
-                      <p className="mb-1">
-                        <span className="font-medium">Published:</span> {paper.published_date}
-                      </p>
-                    )}
-                    {paper.source && (
-                      <span className="inline-block px-2 py-0.5 bg-gray-100 text-gray-700 rounded text-xs">
-                        {paper.source}
-                      </span>
-                    )}
-                  </div>
-                  {paper.abstract && (
-                    <p className="text-sm text-gray-700 mt-2">{paper.abstract}</p>
-                  )}
+                  <p className="text-sm text-gray-700 mt-2">{paper.abstract}</p>
                 </div>
               ))
             )}
@@ -238,48 +200,23 @@ export default function ResearchResults({ topic, onTopicUpdated }: ResearchResul
         )}
 
         {activeTab === 'summary' && (
-          <div>
-            {!summary ? (
-              <div className="text-center py-12 text-gray-500">
-                <FileText className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-                <p>No summary available yet</p>
-                {topic.status !== 'completed' && topic.status !== 'failed' && (
-                  <p className="text-sm mt-1">Analysis in progress...</p>
-                )}
-              </div>
-            ) : (
-              <div className="prose max-w-none">
-                <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
-                  <div className="whitespace-pre-wrap text-gray-800">{summary.content}</div>
-                </div>
-              </div>
-            )}
+          <div className="bg-gray-50 rounded-lg p-8 border border-gray-200 prose max-w-none">
+            {summary ? <ReactMarkdown>{summary.content}</ReactMarkdown> : <p className="text-gray-500">Generating summary...</p>}
           </div>
         )}
 
         {activeTab === 'gaps' && (
           <div className="space-y-3">
             {gaps.length === 0 ? (
-              <div className="text-center py-12 text-gray-500">
-                <Lightbulb className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-                <p>No research gaps identified yet</p>
-                {topic.status !== 'completed' && topic.status !== 'failed' && (
-                  <p className="text-sm mt-1">Analysis in progress...</p>
-                )}
-              </div>
+              <p className="text-center text-gray-500 py-10">No gaps found yet.</p>
             ) : (
               gaps.map((gap) => (
-                <div key={gap.id} className="border border-gray-200 rounded-lg p-4">
-                  <div className="flex items-start gap-3">
-                    <Lightbulb className="w-5 h-5 text-yellow-600 mt-0.5 flex-shrink-0" />
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className={`text-xs px-2 py-1 rounded border ${getPriorityColor(gap.priority)}`}>
-                          {gap.priority} priority
-                        </span>
-                      </div>
-                      <p className="text-gray-800">{gap.gap_description}</p>
-                    </div>
+                <div key={gap.id} className="border border-gray-200 rounded-lg p-4 bg-white shadow-sm">
+                  <span className={`text-xs px-2 py-1 rounded border ${getPriorityColor(gap.priority)} mb-2 inline-block uppercase font-bold`}>
+                    {gap.priority} Priority
+                  </span>
+                  <div className="prose prose-sm max-w-none">
+                    <ReactMarkdown>{gap.gap_description}</ReactMarkdown>
                   </div>
                 </div>
               ))
@@ -288,27 +225,13 @@ export default function ResearchResults({ topic, onTopicUpdated }: ResearchResul
         )}
 
         {activeTab === 'proposal' && (
-          <div>
-            {!proposal ? (
-              <div className="text-center py-12 text-gray-500">
-                <FileCheck className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-                <p>No proposal available yet</p>
-                {topic.status !== 'completed' && topic.status !== 'failed' && (
-                  <p className="text-sm mt-1">Generation in progress...</p>
-                )}
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <h3 className="text-xl font-bold text-gray-900 mb-4">{proposal.title}</h3>
-                </div>
-                <div className="prose max-w-none">
-                  <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
-                    <div className="whitespace-pre-wrap text-gray-800">{proposal.content}</div>
-                  </div>
-                </div>
-              </div>
-            )}
+          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+            <div className="bg-blue-900 text-white p-6">
+              <h3 className="text-2xl font-serif font-bold italic">{proposal?.title || 'Research Proposal'}</h3>
+            </div>
+            <div className="p-8 prose max-w-none font-serif text-lg leading-relaxed bg-slate-50">
+              {proposal ? <ReactMarkdown>{proposal.content}</ReactMarkdown> : <p className="text-gray-500">Generating proposal...</p>}
+            </div>
           </div>
         )}
       </div>
