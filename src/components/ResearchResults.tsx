@@ -1,12 +1,9 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { BookOpen, FileText, Lightbulb, FileCheck, ExternalLink, Loader2, RefreshCw, Download } from 'lucide-react';
-// IMPORT MARKDOWN DIRECTLY FROM CDN
-//import ReactMarkdown from 'https://esm.sh/react-markdown@9';
-// IMPORT PDF GENERATOR FROM CDN
-//import html2pdf from 'https://esm.sh/html2pdf.js';
 import ReactMarkdown from 'react-markdown';
 import html2pdf from 'html2pdf.js';
+
 interface ResearchTopic {
   id: string;
   topic: string;
@@ -48,6 +45,18 @@ interface ResearchResultsProps {
   topic: ResearchTopic;
   onTopicUpdated: (topic: ResearchTopic) => void;
 }
+
+// Map technical statuses to user-friendly display text
+const statusMap: Record<string, string> = {
+  'SEARCHING': 'Finding Latest Papers...',
+  'REVIEWING': 'Reading Full PDF Manuscripts...',
+  'REVIEWING_FULL_TEXT': 'Analyzing Methodologies...',
+  'ANALYZING_GAPS': 'Spotting Technical Gaps...',
+  'WRITING_PROPOSAL': 'Drafting Formal Proposal...',
+  'CRITIC_REVIEW': 'Academic Peer Review in Progress...',
+  'completed': 'Research Completed',
+  'failed': 'Process Interrupted'
+};
 
 export default function ResearchResults({ topic, onTopicUpdated }: ResearchResultsProps) {
   const [papers, setPapers] = useState<Paper[]>([]);
@@ -94,13 +103,12 @@ export default function ResearchResults({ topic, onTopicUpdated }: ResearchResul
     }
   };
 
-  // --- PDF GENERATION LOGIC ---
   const handleDownloadPDF = () => {
     const element = document.getElementById('academic-proposal-document');
     if (!element) return;
 
     const opt = {
-      margin: [0.75, 0.75, 0.75, 0.75], // Standard 0.75 inch margins
+      margin: [0.75, 0.75, 0.75, 0.75],
       filename: `${topic.topic.replace(/\s+/g, '_')}_Proposal.pdf`,
       image: { type: 'jpeg', quality: 0.98 },
       html2canvas: { scale: 2, useCORS: true, letterRendering: true },
@@ -152,11 +160,15 @@ export default function ResearchResults({ topic, onTopicUpdated }: ResearchResul
           <div className="flex-1">
             <h2 className="text-xl font-bold text-gray-900 mb-2">{topic.topic}</h2>
             <div className="flex items-center gap-2">
-              <span className={`text-xs px-2 py-1 rounded-full ${
+              <span className={`text-xs px-3 py-1 rounded-full font-medium flex items-center gap-2 ${
                 topic.status === 'completed' ? 'bg-green-100 text-green-800' :
-                topic.status === 'failed' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'
+                topic.status === 'failed' ? 'bg-red-100 text-red-800' : 
+                'bg-blue-100 text-blue-800 animate-pulse'
               }`}>
-                {topic.status}
+                {topic.status !== 'completed' && topic.status !== 'failed' && (
+                  <span className="w-1.5 h-1.5 bg-blue-600 rounded-full animate-ping" />
+                )}
+                {statusMap[topic.status] || topic.status}
               </span>
             </div>
           </div>
@@ -242,7 +254,7 @@ export default function ResearchResults({ topic, onTopicUpdated }: ResearchResul
               ) : (
                 <div className="text-center py-20">
                   <Loader2 className="w-10 h-10 animate-spin mx-auto text-blue-600 mb-4" />
-                  <p className="text-gray-500">Drafting formal research proposal...</p>
+                  <p className="text-gray-500">{statusMap[topic.status] || 'Drafting formal research proposal...'}</p>
                 </div>
               )}
             </div>
