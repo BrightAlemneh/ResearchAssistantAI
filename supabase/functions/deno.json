@@ -1,0 +1,6 @@
+{
+  "imports": {
+    "@supabase/supabase-js": "npm:@supabase/supabase-js@2.39.7",
+    "pdf.js-extract": "https://esm.sh/pdf.js-extract@0.2.1?bundle"
+  }
+}
