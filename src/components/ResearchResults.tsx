@@ -200,16 +200,32 @@ export default function ResearchResults({ topic, onTopicUpdated }: ResearchResul
       </div>
 
       <div className="p-6">
-        {activeTab === 'papers' && (
+       {activeTab === 'papers' && (
           <div className="space-y-4">
             {papers.map((paper) => (
               <div key={paper.id} className="border border-gray-200 rounded-lg p-4 hover:bg-slate-50 transition">
                 <div className="flex justify-between items-start gap-4">
                   <h3 className="text-lg font-semibold text-gray-900">{paper.title}</h3>
-                  {paper.url && <a href={paper.url} target="_blank" rel="noopener" className="text-blue-600"><ExternalLink className="w-5 h-5" /></a>}
+                  {paper.url && (
+                    <a href={paper.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                      <ExternalLink className="w-5 h-5" />
+                    </a>
+                  )}
                 </div>
-                <p className="text-sm text-gray-600 mt-1 italic">{paper.authors.join(', ')} • {paper.published_date}</p>
-                <p className="text-sm text-gray-700 mt-2 line-clamp-3">{paper.abstract}</p>
+                
+                {/* SAFE AUTHOR RENDERING */}
+                <p className="text-sm text-gray-600 mt-1 italic">
+                  {/* Check if authors exists and has length, otherwise show placeholder */}
+                  {paper.authors && paper.authors.length > 0 
+                    ? paper.authors.join(', ') 
+                    : 'Unknown Authors'} 
+                  {' • '} 
+                  {paper.published_date || 'Date N/A'}
+                </p>
+
+                <p className="text-sm text-gray-700 mt-2 line-clamp-3">
+                  {paper.abstract}
+                </p>
               </div>
             ))}
           </div>
