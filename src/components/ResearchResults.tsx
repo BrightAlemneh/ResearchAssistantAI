@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { BookOpen, FileText, Lightbulb, FileCheck, ExternalLink, Loader2, RefreshCw } from 'lucide-react';
+import { BookOpen, FileText, Lightbulb, FileCheck, ExternalLink, Loader2, RefreshCw, Zap, CheckCircle2 } from 'lucide-react';
 
 interface ResearchTopic {
   id: string;
@@ -51,6 +51,16 @@ export default function ResearchResults({ topic, onTopicUpdated }: ResearchResul
   const [proposal, setProposal] = useState<Proposal | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'papers' | 'summary' | 'gaps' | 'proposal'>('papers');
+
+  const getAgentStatus = () => {
+    const statuses = [
+      { name: 'Search Agent', icon: BookOpen, active: topic.status === 'searching', complete: papers.length > 0 },
+      { name: 'Reviewer Agent', icon: FileText, active: topic.status === 'analyzing' && papers.length > 0, complete: !!summary },
+      { name: 'Proposal Agent', icon: Lightbulb, active: topic.status === 'analyzing' && summary && !gaps.length, complete: gaps.length > 0 },
+      { name: 'Critic Agent', icon: FileCheck, active: topic.status === 'refining', complete: !!proposal },
+    ];
+    return statuses;
+  };
 
   useEffect(() => {
     fetchAllData();
@@ -131,24 +141,56 @@ export default function ResearchResults({ topic, onTopicUpdated }: ResearchResul
     );
   }
 
+  const agentStatuses = getAgentStatus();
+  const isProcessing = topic.status !== 'completed' && topic.status !== 'failed';
+
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200">
       <div className="border-b border-gray-200 p-6">
-        <div className="flex items-start justify-between mb-4">
+        <div className="flex items-start justify-between mb-6">
           <div className="flex-1">
             <h2 className="text-xl font-bold text-gray-900 mb-2">{topic.topic}</h2>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 mb-4">
               <span className={`text-xs px-2 py-1 rounded-full ${
                 topic.status === 'completed' ? 'bg-green-100 text-green-800' :
                 topic.status === 'failed' ? 'bg-red-100 text-red-800' :
                 'bg-blue-100 text-blue-800'
               }`}>
-                {topic.status}
+                {topic.status === 'completed' ? 'Complete' : topic.status === 'failed' ? 'Failed' : 'Processing...'}
               </span>
-              {topic.status !== 'completed' && topic.status !== 'failed' && (
+              {isProcessing && (
                 <Loader2 className="w-4 h-4 text-blue-600 animate-spin" />
               )}
             </div>
+
+            {isProcessing && (
+              <div className="space-y-2">
+                {agentStatuses.map((agent, idx) => {
+                  const Icon = agent.icon;
+                  return (
+                    <div key={idx} className="flex items-center gap-2">
+                      {agent.complete ? (
+                        <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0" />
+                      ) : agent.active ? (
+                        <Zap className="w-4 h-4 text-blue-600 animate-pulse flex-shrink-0" />
+                      ) : (
+                        <div className="w-4 h-4 border-2 border-gray-200 rounded-full flex-shrink-0" />
+                      )}
+                      <Icon className="w-4 h-4 text-gray-500" />
+                      <span className={`text-xs font-medium ${
+                        agent.complete ? 'text-green-600' :
+                        agent.active ? 'text-blue-600' :
+                        'text-gray-500'
+                      }`}>
+                        {agent.name}
+                      </span>
+                      {agent.active && <span className="text-xs text-blue-600">working...</span>}
+                      {agent.complete && <span className="text-xs text-green-600">done</span>}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
           <button
             onClick={fetchAllData}
