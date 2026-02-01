@@ -1,12 +1,11 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { LogOut, Search, Loader2, Plus, FileText, BookOpen, Lightbulb, FileCheck } from 'lucide-react';
 import ResearchTopicForm from './ResearchTopicForm';
 import ResearchTopicList from './ResearchTopicList';
 import ResearchResults from './ResearchResults';
-// Add this near your other imports at the top
-import ReactMarkdown from 'https://esm.sh/react-markdown@9';
+
 interface ResearchTopic {
   id: string;
   topic: string;
@@ -22,8 +21,11 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [showNewTopicForm, setShowNewTopicForm] = useState(false);
 
-  // 1. USE A TRADITIONAL FUNCTION DECLARATION (This fixes the "not defined" error)
-  async function fetchResearchTopics() {
+  useEffect(() => {
+    fetchResearchTopics();
+  }, []);
+
+  const fetchResearchTopics = async () => {
     try {
       const { data, error } = await supabase
         .from('research_topics')
@@ -37,136 +39,153 @@ export default function Dashboard() {
     } finally {
       setLoading(false);
     }
-  }
-
-  // 2. TRIGGER FETCH ON MOUNT
-  //useEffect(() => {
-  //  fetchResearchTopics();
- // }, []);
-  useEffect(() => {
-  fetchResearchTopics();
-
-  // This "listens" to the database and updates your screen the second the AI finishes
-  const channel = supabase
-    .channel('schema-db-changes')
-    .on(
-      'postgres_changes',
-      { 
-        event: 'UPDATE', 
-        schema: 'public', 
-        table: 'research_topics' 
-      },
-      (payload) => {
-        // Update the list of topics
-        setResearchTopics((currentTopics) =>
-          currentTopics.map((t) => (t.id === payload.new.id ? { ...t, ...payload.new } : t))
-        );
-        
-        // If the topic you are currently viewing just finished, update the view
-        if (selectedTopic?.id === payload.new.id) {
-          setSelectedTopic(payload.new as ResearchTopic);
-        }
-      }
-    )
-    .subscribe();
-
-  return () => {
-    supabase.removeChannel(channel);
-  };
-}, [selectedTopic]);
-
-  // 3. DELETE LOGIC
-  const handleDeleteTopic = async (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!window.confirm('Delete this research topic and all associated data?')) return;
-
-    try {
-      const { error } = await supabase
-        .from('research_topics')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
-
-      // Clean up UI
-      setResearchTopics(prev => prev.filter(t => t.id !== id));
-      if (selectedTopic?.id === id) setSelectedTopic(null);
-    } catch (error: any) {
-      alert('Delete failed: ' + error.message);
-    }
   };
 
   const handleTopicCreated = (newTopic: ResearchTopic) => {
-    setResearchTopics(prev => [newTopic, ...prev]);
+    setResearchTopics([newTopic, ...researchTopics]);
     setSelectedTopic(newTopic);
     setShowNewTopicForm(false);
   };
 
   const handleTopicUpdated = (updatedTopic: ResearchTopic) => {
-    setResearchTopics(prev => 
-      prev.map(t => t.id === updatedTopic.id ? updatedTopic : t)
+    setResearchTopics(
+      researchTopics.map((topic) =>
+        topic.id === updatedTopic.id ? updatedTopic : topic
+      )
     );
     if (selectedTopic?.id === updatedTopic.id) {
       setSelectedTopic(updatedTopic);
     }
   };
 
+  const handleSignOut = async () => {
+    await signOut();
+  };
+
   return (
-    <div className="min-h-screen bg-slate-50">
-      <header className="bg-white border-b sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-          <div className="flex items-center gap-3">
-            <Search className="w-8 h-8 text-blue-600" />
-            <h1 className="text-xl font-bold">Research Assistant AI</h1>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-slate-100">
+      <header className="bg-white border-b border-gray-200 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="bg-blue-600 rounded-lg p-2">
+                <Search className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">Research Assistant AI</h1>
+                <p className="text-sm text-gray-600">Autonomous research analysis and proposal generation</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-4">
+              <span className="text-sm text-gray-600">{user?.email}</span>
+              <button
+                onClick={handleSignOut}
+                className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition"
+              >
+                <LogOut className="w-4 h-4" />
+                Sign Out
+              </button>
+            </div>
           </div>
-          <button onClick={() => signOut()} className="flex items-center gap-2 text-gray-600 hover:text-red-600">
-            <LogOut className="w-4 h-4" /> Sign Out
-          </button>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <aside className="lg:col-span-1">
-          <div className="bg-white rounded-xl shadow-sm border p-6">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="font-bold text-lg">Your Research</h2>
-              <button 
-                onClick={() => setShowNewTopicForm(true)}
-                className="bg-blue-600 text-white p-2 rounded-lg hover:bg-blue-700"
-              >
-                <Plus className="w-5 h-5" />
-              </button>
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-1 space-y-6">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-gray-900">Your Research Topics</h2>
+                <button
+                  onClick={() => setShowNewTopicForm(true)}
+                  className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm"
+                >
+                  <Plus className="w-4 h-4" />
+                  New
+                </button>
+              </div>
+
+              {showNewTopicForm && (
+                <ResearchTopicForm
+                  onTopicCreated={handleTopicCreated}
+                  onCancel={() => setShowNewTopicForm(false)}
+                />
+              )}
+
+              {loading ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
+                </div>
+              ) : (
+                <ResearchTopicList
+                  topics={researchTopics}
+                  selectedTopic={selectedTopic}
+                  onSelectTopic={setSelectedTopic}
+                />
+              )}
             </div>
 
-            {showNewTopicForm && (
-              <ResearchTopicForm 
-                onTopicCreated={handleTopicCreated} 
-                onCancel={() => setShowNewTopicForm(false)} 
-              />
-            )}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <h3 className="font-semibold text-gray-900 mb-3">Features</h3>
+              <div className="space-y-3">
+                <div className="flex items-start gap-3">
+                  <BookOpen className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">Find Papers</p>
+                    <p className="text-xs text-gray-600">Discover relevant academic papers</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <FileText className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">Summarize</p>
+                    <p className="text-xs text-gray-600">Get AI-powered summaries</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <Lightbulb className="w-5 h-5 text-yellow-600 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">Research Gaps</p>
+                    <p className="text-xs text-gray-600">Identify opportunities</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <FileCheck className="w-5 h-5 text-purple-600 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">Proposals</p>
+                    <p className="text-xs text-gray-600">Generate research outlines</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
 
-            {loading ? (
-              <div className="flex justify-center py-10"><Loader2 className="animate-spin text-blue-600" /></div>
-            ) : (
-              <ResearchTopicList
-                topics={researchTopics}
-                selectedTopic={selectedTopic}
-                onSelectTopic={setSelectedTopic}
-                onDeleteTopic={handleDeleteTopic}
+          <div className="lg:col-span-2">
+            {selectedTopic ? (
+              <ResearchResults
+                topic={selectedTopic}
+                onTopicUpdated={handleTopicUpdated}
               />
+            ) : (
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
+                <Search className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                  No Topic Selected
+                </h3>
+                <p className="text-gray-600 mb-6">
+                  Create a new research topic or select one from the list to view results
+                </p>
+                <button
+                  onClick={() => setShowNewTopicForm(true)}
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                >
+                  <Plus className="w-5 h-5" />
+                  Create New Research Topic
+                </button>
+              </div>
             )}
           </div>
-        </aside>
-
-        <section className="lg:col-span-2">
-          {selectedTopic ? (
-            <ResearchResults topic={selectedTopic} onTopicUpdated={handleTopicUpdated} />
-          ) : (
-            <div className="h-96 border-2 border-dashed rounded-xl flex items-center justify-center text-gray-400">
-              Select a topic to view analysis
-            </div>
-          )}
-        </section>
+        </div>
       </main>
     </div>
   );
